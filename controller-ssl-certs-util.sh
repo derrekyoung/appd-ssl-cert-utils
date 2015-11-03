@@ -37,7 +37,7 @@ generate-csr()
 	if [ -f $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME ]; then
 		echo "Creating backup keystore $CONTROLLER_CONFIG_HOME/$KEYSTORE_BACKUP"
 		cp $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME $CONTROLLER_CONFIG_HOME/$KEYSTORE_BACKUP
-fi
+	fi
 
 	#########################################
 	# Delete the existing $CONTROLLER_SIGNED_CERT_ALIAS_NAME
