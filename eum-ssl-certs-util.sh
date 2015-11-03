@@ -5,7 +5,7 @@
 #
 # Generate new certs, import them, and list keystore contents.
 #
-# Version: 0.4
+# Version: 0.5
 #
 #--------------------------------------------------------------------------------------------------
 
@@ -15,54 +15,64 @@ EUM_HOME=/opt/AppDynamics/EUM
 
 ################################################
 # Do not edit below this line
+DATETIME=`date +%Y%m%d%H%M`
+CSR="./$HOSTNAME-$DATETIME.csr"
 
-EUM_KEYTOOL_HOME=$EUM_HOME/jre/bin
-EUM_CONFIG_HOME=$EUM_HOME/eum-processor/bin
-EUM_SIGNED_CERT_ALIAS_NAME="eum-server"
-EUM_KEYSTORE_NAME="keystore.jks"
-EUM_KEYSTORE_PASSWORD="changeit"
+SIGNED_CERT_ALIAS_NAME="eum-server"
+KEYSTORE_NAME="keystore.jks"
+KEYSTORE_PASSWORD="changeit"
+CONFIG_HOME=$EUM_HOME/eum-processor/bin
+KEYSTORE_PATH=$CONFIG_HOME/$KEYSTORE_NAME
+KEYTOOL_HOME=$EUM_HOME/jre/bin
+KEYTOOL=$KEYTOOL_HOME/keytool
+KEYSTORE_BACKUP="./$KEYSTORE_NAME-$DATETIME.bak"
 
 #1
 generate-csr()
 {
-	validate
-
-	local DATETIME=`date +%Y%m%d%H%M`
-	local KEYSTORE_BACKUP="$EUM_KEYSTORE_NAME.$DATETIME.bak"
-	local CSR="$HOSTNAME-$DATETIME.csr"
-
 	echo "Generating a new Certificate Signing Request..."
 
 	#########################################
 	# Backup the keystore
-	if [ -f $EUM_CONFIG_HOME/$EUM_KEYSTORE_NAME ]; then
-		echo "Creating backup keystore $EUM_CONFIG_HOME/$EUM_KEYSTORE_NAME "
-		cp $EUM_CONFIG_HOME/$EUM_KEYSTORE_NAME $EUM_CONFIG_HOME/$KEYSTORE_BACKUP
+	if [ -f $KEYSTORE_PATH ]; then
+		echo "Creating backup keystore $KEYSTORE_BACKUP "
+		mv $KEYSTORE_PATH $KEYSTORE_BACKUP
+
+		if [ $? -gt 0 ] ; then
+		  echo "ERROR: unable to create the backup keystore"
+		  exit 1
+		fi
 	fi
 
 	#########################################
 	# Create the new keystore
-	echo "Creating the new keystore at $EUM_CONFIG_HOME/$EUM_KEYSTORE_NAME"
-	$EUM_KEYTOOL_HOME/keytool -genkey -keyalg RSA -validity 3560 -alias $EUM_SIGNED_CERT_ALIAS_NAME -keystore $EUM_CONFIG_HOME/$EUM_KEYSTORE_NAME -storepass $EUM_KEYSTORE_PASSWORD
+	echo "Creating the new keystore at $KEYSTORE_PATH"
+	$KEYTOOL -genkey -keyalg RSA -validity 3560 -alias $SIGNED_CERT_ALIAS_NAME -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD
 
+	if [ $? -gt 0 ] ; then
+	  echo "ERROR: unable to generate the keypair"
+	  exit 1
+	fi
 
 	#########################################
 	# Generate the CSR
-	echo "Generating the Certificate Signing Request at $EUM_CONFIG_HOME/$CSR"
-	$EUM_KEYTOOL_HOME/keytool -certreq -keystore $EUM_CONFIG_HOME/$EUM_KEYSTORE_NAME -file $EUM_CONFIG_HOME/$CSR -alias $HOSTNAME -storepass $EUM_KEYSTORE_PASSWORD
+	echo "Generating the Certificate Signing Request at $CSR"
+	$KEYTOOL -certreq -keystore $KEYSTORE_PATH -file $CSR -alias $HOSTNAME -storepass $KEYSTORE_PASSWORD
 
+	if [ $? -gt 0 ] ; then
+	  echo "ERROR: unable to generate the CSR"
+	  exit 1
+	fi
 
 	#########################################
 	echo " "
-	echo "Finished. CSR successfully generated at $EUM_CONFIG_HOME/$CSR. "
+	echo "Finished. CSR successfully generated at $CSR "
 	echo "Send this CSR to your Certificate Authority for signing.  You may need to first import the CA's chain or root cert, depending on your setup. Contact your company's PKI team for guidance."
 }
 
 #2
 import-signed-cert()
 {
-	validate
-
 	echo "Importing a signed certificate..."
 	read -rp $'Certificate filename: ' cert
 
@@ -71,20 +81,23 @@ import-signed-cert()
 		exit
 	fi
 
-	echo "Importing certificate: $cert"
-	$EUM_KEYTOOL_HOME/keytool -import -trustcacerts -keystore $EUM_CONFIG_HOME/$EUM_KEYSTORE_NAME -file $cert  -alias $EUM_SIGNED_CERT_ALIAS_NAME -storepass $EUM_KEYSTORE_PASSWORD
+	echo "Importing $cert into $KEYSTORE_PATH for alias $alias"
+	$KEYTOOL -import -trustcacerts -keystore $KEYSTORE_PATH -file $cert  -alias $SIGNED_CERT_ALIAS_NAME -storepass $KEYSTORE_PASSWORD
+
+	if [ $? -gt 0 ] ; then
+		echo "ERROR: unable to import the certificate"
+		exit 1
+	fi
 
 	echo " "
-	echo "Finished. Now add the following properties to $EUM_CONFIG_HOME/eum.properties and restart the EUM Server."
-	echo "processorServer.keyStorePassword=$EUM_KEYSTORE_PASSWORD"
-	echo "processorServer.keyStoreFileName=$EUM_KEYSTORE_NAME"
+	echo "Finished. Now add the following properties to $CONFIG_HOME/eum.properties and restart the EUM Server."
+	echo "processorServer.keyStorePassword=$KEYSTORE_PASSWORD"
+	echo "processorServer.keyStoreFileName=$KEYSTORE_NAME"
 }
 
 #3
 import-cert-chain()
 {
-	validate
-
 	echo "Importing a root or intermediate certificate..."
 	read -rp $'Certificate filename: ' cert
 
@@ -97,8 +110,13 @@ import-cert-chain()
 	local filename="${fullfile##*/}"
 	local alias=$(echo $filename | cut -f 1 -d '.') #File name without the extension
 
-	echo "Importing $cert into keystore alias $alias"
-	$EUM_KEYTOOL_HOME/keytool -import -trustcacerts -alias $alias -keystore $EUM_CONFIG_HOME/$EUM_KEYSTORE_NAME -storepass $EUM_KEYSTORE_PASSWORD -file $cert
+	echo "Importing $cert into $KEYSTORE_PATH for alias $alias"
+	$KEYTOOL -import -trustcacerts -alias $alias -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD -file $cert
+
+	if [ $? -gt 0 ] ; then
+		echo "ERROR: unable to import the certificate"
+		exit 1
+	fi
 
 	echo "Finished"
 }
@@ -106,25 +124,21 @@ import-cert-chain()
 #4
 list()
 {
-	validate
-
-	$EUM_KEYTOOL_HOME/keytool -list -keystore $EUM_CONFIG_HOME/$EUM_KEYSTORE_NAME -storepass $EUM_KEYSTORE_PASSWORD
+	$KEYTOOL -list -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD
 }
 
 validate()
 {
-	local valid=true
-
 	if [ ! -d "$EUM_HOME" ]; then
 		echo "ERROR: Unable to find $EUM_HOME. Set this variable in this script."
 		exit 1
 	fi
-	if [ ! -d "$EUM_KEYTOOL_HOME" ]; then
-		echo "ERROR: Unable to find $EUM_KEYTOOL_HOME. Set this variable in this script."
+	if [ ! -d "$KEYTOOL_HOME" ]; then
+		echo "ERROR: Unable to find $KEYTOOL_HOME. Set this variable in this script."
 		exit 1
 	fi
-	if [ ! -d "$EUM_CONFIG_HOME" ]; then
-		echo "ERROR: Unable to find $EUM_CONFIG_HOME. Set this variable in this script."
+	if [ ! -d "$CONFIG_HOME" ]; then
+		echo "ERROR: Unable to find $CONFIG_HOME. Set this variable in this script."
 		exit 1
 	fi
 }
@@ -179,4 +193,5 @@ main()
 	done
 }
 
+validate
 main

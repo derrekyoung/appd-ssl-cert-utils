@@ -5,68 +5,85 @@
 #
 # Generate new certs, import them, list keystore contents and disable the HTTP port.
 #
-# Version: 0.4
+# Version: 0.5
 #
 #--------------------------------------------------------------------------------------------------
 
 # Edit the following parameter to suit your environment
 CONTROLLER_HOME=/opt/AppDynamics/Controller
 
+
 ################################################
 # Do not edit below this line
+DATETIME=`date +%Y%m%d%H%M`
+CSR="./$HOSTNAME-$DATETIME.csr"
 
-CONTROLLER_KEYTOOL_HOME=$CONTROLLER_HOME/jre/bin
-CONTROLLER_CONFIG_HOME=$CONTROLLER_HOME/appserver/glassfish/domains/domain1/config
-CONTROLLER_SIGNED_CERT_ALIAS_NAME="s1as"
-CONTROLLER_KEYSTORE_NAME="keystore.jks"
-CONTROLLER_KEYSTORE_PASSWORD="changeit"
+SIGNED_CERT_ALIAS_NAME="s1as"
+KEYSTORE_NAME="keystore.jks"
+KEYSTORE_PASSWORD="changeit"
+CONFIG_HOME=$CONTROLLER_HOME/appserver/glassfish/domains/domain1/config
+KEYSTORE_PATH=$CONFIG_HOME/$KEYSTORE_NAME
+KEYTOOL_HOME=$CONTROLLER_HOME/jre/bin
+KEYTOOL=$KEYTOOL_HOME/keytool
+KEYSTORE_BACKUP="./$KEYSTORE_NAME-$DATETIME.bak"
 
 #1
 generate-csr()
 {
-	validate
-
-	local DATETIME=`date +%Y%m%d%H%M`
-	local KEYSTORE_BACKUP="$CONTROLLER_KEYSTORE_NAME.$DATETIME.bak"
-	local CSR="$HOSTNAME-$DATETIME.csr"
-
 	echo "Generating a new Certificate Signing Request..."
 
 	#########################################
 	# Backup the keystore
-	if [ -f $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME ]; then
-		echo "Creating backup keystore $CONTROLLER_CONFIG_HOME/$KEYSTORE_BACKUP"
-		cp $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME $CONTROLLER_CONFIG_HOME/$KEYSTORE_BACKUP
+	if [ -f $KEYSTORE_PATH ]; then
+		echo "Creating backup keystore $KEYSTORE_BACKUP"
+		cp $KEYSTORE_PATH $KEYSTORE_BACKUP
+
+		if [ $? -gt 0 ] ; then
+		  echo "ERROR: unable to create the backup keystore"
+		  exit 1
+		fi
 	fi
 
 	#########################################
-	# Delete the existing $CONTROLLER_SIGNED_CERT_ALIAS_NAME
-	echo "Deleting $CONTROLLER_SIGNED_CERT_ALIAS_NAME in $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME "
-	$CONTROLLER_KEYTOOL_HOME/keytool -delete -alias $CONTROLLER_SIGNED_CERT_ALIAS_NAME -keystore $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME -storepass $CONTROLLER_KEYSTORE_PASSWORD
+	# Delete the existing $SIGNED_CERT_ALIAS_NAME
+	echo "Deleting $SIGNED_CERT_ALIAS_NAME in $KEYSTORE_PATH "
+	$KEYTOOL -delete -alias $SIGNED_CERT_ALIAS_NAME -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD
 
+	if [ $? -gt 0 ] ; then
+	  echo "ERROR: unable to delete the alias"
+	  exit 1
+	fi
 
 	#########################################
 	# Generate the keypair
-	echo "Generating the new keypair in $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME "
-	$CONTROLLER_KEYTOOL_HOME/keytool -genkeypair -alias $CONTROLLER_SIGNED_CERT_ALIAS_NAME -keyalg RSA -keystore $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME -keysize 2048 -validity 1825 -storepass $CONTROLLER_KEYSTORE_PASSWORD
+	echo "Generating the new keypair in $KEYSTORE_PATH "
+	$KEYTOOL -genkeypair -alias $SIGNED_CERT_ALIAS_NAME -keyalg RSA -keystore $KEYSTORE_PATH -keysize 2048 -validity 1825 -storepass $KEYSTORE_PASSWORD
+
+	if [ $? -gt 0 ] ; then
+	  echo "ERROR: unable to generate the keypair"
+	  exit 1
+	fi
 
 
 	#########################################
 	# Generate the CSR
-	echo "Generating the Certificate Signing Request at $CONTROLLER_CONFIG_HOME/$CSR "
-	$CONTROLLER_KEYTOOL_HOME/keytool -certreq -alias $CONTROLLER_SIGNED_CERT_ALIAS_NAME -keystore $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME -storepass $CONTROLLER_KEYSTORE_PASSWORD -file $CONTROLLER_CONFIG_HOME/$CSR
+	echo "Generating the Certificate Signing Request at $CSR "
+	$KEYTOOL -certreq -alias $SIGNED_CERT_ALIAS_NAME -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD -file $CSR
+
+	if [ $? -gt 0 ] ; then
+	  echo "ERROR: unable to generate the CSR"
+	  exit 1
+	fi
 
 	#########################################
 	echo " "
-	echo "Finished. CSR generated at $CONTROLLER_CONFIG_HOME/$CSR."
+	echo "Finished. CSR generated at $CSR"
 	echo "Send this CSR to your Certificate Authority for signing, then import the signed cert. You may need to first import the CA's chain or root cert, depending on your setup. Contact your company's PKI team for guidance. "
 }
 
 #2
 import-signed-cert()
 {
-	validate
-
 	echo "Importing a signed certificate..."
 	read -rp $'Certificate filename: ' cert
 
@@ -75,8 +92,13 @@ import-signed-cert()
 		exit
 	fi
 
-	echo "Importing certificate: $cert"
-	$CONTROLLER_KEYTOOL_HOME/keytool -import -trustcacerts -alias $CONTROLLER_SIGNED_CERT_ALIAS_NAME -keystore $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME -storepass $CONTROLLER_KEYSTORE_PASSWORD -file $cert
+	echo "Importing $cert into $KEYSTORE_PATH for alias $alias"
+	$KEYTOOL -import -trustcacerts -alias $SIGNED_CERT_ALIAS_NAME -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD -file $cert
+
+	if [ $? -gt 0 ] ; then
+		echo "ERROR: unable to import the certificate"
+		exit 1
+	fi
 
 	echo "Finished"
 }
@@ -84,8 +106,6 @@ import-signed-cert()
 #3
 import-cert-chain()
 {
-	validate
-
 	echo "Importing a root or intermediate certificate..."
 	read -rp $'Certificate filename: ' cert
 
@@ -98,8 +118,13 @@ import-cert-chain()
 	local filename="${fullfile##*/}"
 	local alias=$(echo $filename | cut -f 1 -d '.') #File name without the extension
 
-	echo "Importing $cert into keystore alias $alias"
-	$CONTROLLER_KEYTOOL_HOME/keytool -import -trustcacerts -alias $alias -keystore $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME -storepass $CONTROLLER_KEYSTORE_PASSWORD -file $cert
+	echo "Importing $cert into $KEYSTORE_PATH for alias $alias"
+	$KEYTOOL -import -trustcacerts -alias $alias -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD -file $cert
+
+	if [ $? -gt 0 ] ; then
+		echo "ERROR: unable to import the certificate"
+		exit 1
+	fi
 
 	echo "Finished"
 }
@@ -107,24 +132,21 @@ import-cert-chain()
 #4
 list()
 {
-	validate
-
-	$CONTROLLER_KEYTOOL_HOME/keytool -list -keystore $CONTROLLER_CONFIG_HOME/$CONTROLLER_KEYSTORE_NAME -storepass $CONTROLLER_KEYSTORE_PASSWORD | more
+	$KEYTOOL -list -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD | more
 }
 
 validate()
 {
-	local valid=true
 	if [ ! -d "$CONTROLLER_HOME" ]; then
 		echo "ERROR: Unable to find $CONTROLLER_HOME. Set the variable in this script."
 		exit 1
 	fi
-	if [ ! -d "$CONTROLLER_KEYTOOL_HOME" ]; then
-		echo "ERROR: Unable to find $CONTROLLER_KEYTOOL_HOME. Set the variable in this script."
+	if [ ! -d "$KEYTOOL_HOME" ]; then
+		echo "ERROR: Unable to find $KEYTOOL_HOME. Set the variable in this script."
 		exit 1
 	fi
-	if [ ! -d "$CONTROLLER_CONFIG_HOME" ]; then
-		echo "ERROR: Unable to find $CONTROLLER_CONFIG_HOME. Set the variable in this script."
+	if [ ! -d "$CONFIG_HOME" ]; then
+		echo "ERROR: Unable to find $CONFIG_HOME. Set the variable in this script."
 		exit 1
 	fi
 }
@@ -178,4 +200,5 @@ main()
 	done
 }
 
+validate
 main
