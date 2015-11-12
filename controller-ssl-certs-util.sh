@@ -5,7 +5,7 @@
 #
 # Generate new certs, import them, list keystore contents and disable the HTTP port.
 #
-# Version: 0.5
+# Version: 0.6
 #
 #--------------------------------------------------------------------------------------------------
 
@@ -26,6 +26,12 @@ KEYSTORE_PATH=$CONFIG_HOME/$KEYSTORE_NAME
 KEYTOOL_HOME=$CONTROLLER_HOME/jre/bin
 KEYTOOL=$KEYTOOL_HOME/keytool
 KEYSTORE_BACKUP="./$KEYSTORE_NAME-$DATETIME.bak"
+
+# For localhost, manual testing
+#CONFIG_HOME=$CONTROLLER_HOME
+#KEYTOOL_HOME=$CONTROLLER_HOME
+#KEYTOOL=keytool
+#CONTROLLER_HOME=.
 
 #1
 generate-csr()
@@ -92,8 +98,8 @@ import-signed-cert()
 		exit
 	fi
 
-	echo "Importing $cert into $KEYSTORE_PATH for alias $alias"
-	$KEYTOOL -import -trustcacerts -alias $SIGNED_CERT_ALIAS_NAME -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD -file $cert
+	echo "Importing $cert into $KEYSTORE_PATH for alias $SIGNED_CERT_ALIAS_NAME"
+	$KEYTOOL -import -trustcacerts -keystore $KEYSTORE_PATH -file $cert -alias $SIGNED_CERT_ALIAS_NAME -storepass $KEYSTORE_PASSWORD
 
 	if [ $? -gt 0 ] ; then
 		echo "ERROR: unable to import the certificate"
