@@ -63,7 +63,7 @@ generate-csr()
 	#########################################
 	# Generate the CSR
 	echo "Generating the Certificate Signing Request at $CSR"
-	$KEYTOOL -certreq -keystore $KEYSTORE_PATH -file $CSR -alias $HOSTNAME -storepass $KEYSTORE_PASSWORD
+	$KEYTOOL -certreq -keystore $KEYSTORE_PATH -file $CSR -alias $SIGNED_CERT_ALIAS_NAME -storepass $KEYSTORE_PASSWORD
 
 	if [ $? -gt 0 ] ; then
 	  echo "ERROR: unable to generate the CSR"
