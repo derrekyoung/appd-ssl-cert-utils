@@ -5,7 +5,7 @@
 #
 # Generate new certs, import them, and list keystore contents.
 #
-# Version: 0.6
+# Version: 0.7
 #
 #--------------------------------------------------------------------------------------------------
 

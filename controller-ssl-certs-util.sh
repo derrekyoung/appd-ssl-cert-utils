@@ -5,7 +5,7 @@
 #
 # Generate new certs, import them, list keystore contents and disable the HTTP port.
 #
-# Version: 0.6
+# Version: 0.7
 #
 #--------------------------------------------------------------------------------------------------
 
