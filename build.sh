@@ -1,28 +1,36 @@
 #!/bin/bash
 
-VERSION="v0.7-BETA"
+VERSION="0.8-BETA"
 
+
+################################################
+# Do not edit below this line
 DIST_DIR="./dist"
-DIST_TOP_FOLDER="appd-ssl-cert-utils-$VERSION"
+DIST_TOP_FOLDER="appd-ssl-certs-utils-$VERSION"
 DISTRIBUTABLE_NAME="$DIST_TOP_FOLDER.zip"
 
-if [ -d "$DIST_DIR" ]; then
-  echo "Cleaning dist/ directory..."
-  rm -R $DIST_DIR
-fi
+dist()
+{
+  if [ -d "$DIST_DIR" ]; then
+    echo "Cleaning dist/ directory..."
+    rm -R $DIST_DIR
+  fi
 
-if [ ! -d "$DIST_DIR" ]; then
-  echo "Making dist/ directory..."
-  mkdir $DIST_DIR
-fi
+  if [ ! -d "$DIST_DIR" ]; then
+    echo "Making dist/ directory..."
+    mkdir $DIST_DIR
+  fi
 
-# Create a top-level folder for when unzipping the archive
-mkdir $DIST_DIR/$DIST_TOP_FOLDER
-cp *-ssl-certs-util.sh $DIST_DIR/$DIST_TOP_FOLDER/
+  # Create a top-level folder for when unzipping the archive
+  mkdir $DIST_DIR/$DIST_TOP_FOLDER
 
-echo "Creating the Zip file..."
-#zip $DIST_DIR/$DISTRIBUTABLE_NAME controller-ssl-certs-util.sh eum-ssl-certs-util.sh
-cd $DIST_DIR/
-zip -r $DISTRIBUTABLE_NAME $DIST_TOP_FOLDER/
+  cp controller-ssl-certs-util.sh $DIST_DIR/$DIST_TOP_FOLDER/controller-ssl-certs-util-$VERSION.sh
+  cp eum-ssl-certs-util.sh $DIST_DIR/$DIST_TOP_FOLDER/eum-ssl-certs-util-$VERSION.sh
 
-#unzip -l $DISTRIBUTABLE_NAME
+  echo "Creating the Zip file..."
+
+  cd $DIST_DIR/
+  zip -r $DISTRIBUTABLE_NAME $DIST_TOP_FOLDER/
+}
+
+dist

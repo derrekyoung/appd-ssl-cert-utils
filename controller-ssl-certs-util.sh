@@ -5,7 +5,7 @@
 #
 # Generate new certs, import them, list keystore contents and disable the HTTP port.
 #
-# Version: 0.7
+# Version: 0.8
 #
 #--------------------------------------------------------------------------------------------------
 
@@ -26,12 +26,6 @@ KEYSTORE_PATH=$CONFIG_HOME/$KEYSTORE_NAME
 KEYTOOL_HOME=$CONTROLLER_HOME/jre/bin
 KEYTOOL=$KEYTOOL_HOME/keytool
 KEYSTORE_BACKUP="./$KEYSTORE_NAME-$DATETIME.bak"
-
-# For localhost, manual testing
-#CONFIG_HOME=$CONTROLLER_HOME
-#KEYTOOL_HOME=$CONTROLLER_HOME
-#KEYTOOL=keytool
-#CONTROLLER_HOME=.
 
 #1
 generate-csr()
@@ -93,10 +87,7 @@ import-signed-cert()
 	echo "Importing a signed certificate..."
 	read -rp $'Certificate filename: ' cert
 
-	if [ -z "$cert" ]; then
-		echo "Required: certificate file name"
-		exit
-	fi
+	validate-certificate $cert
 
 	echo "Importing $cert into $KEYSTORE_PATH for alias $SIGNED_CERT_ALIAS_NAME"
 	$KEYTOOL -import -trustcacerts -keystore $KEYSTORE_PATH -file $cert -alias $SIGNED_CERT_ALIAS_NAME -storepass $KEYSTORE_PASSWORD
@@ -115,17 +106,12 @@ import-cert-chain()
 	echo "Importing a root or intermediate certificate..."
 	read -rp $'Certificate filename: ' cert
 
-	if [ -z "$cert" ]; then
-		echo "Required: certificate file name"
-		exit
-	fi
+	validate-certificate $cert
 
-	local fullfile=$cert
-	local filename="${fullfile##*/}"
-	local alias=$(echo $filename | cut -f 1 -d '.') #File name without the extension
+	local alias=$(get-alias $cert)
 
 	echo "Importing $cert into $KEYSTORE_PATH for alias $alias"
-	$KEYTOOL -import -trustcacerts -alias $alias -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD -file $cert
+	$KEYTOOL -import -trustcacerts -keystore $KEYSTORE_PATH -file $cert -alias $alias -storepass $KEYSTORE_PASSWORD
 
 	if [ $? -gt 0 ] ; then
 		echo "ERROR: unable to import the certificate"
@@ -141,7 +127,38 @@ list()
 	$KEYTOOL -list -keystore $KEYSTORE_PATH -storepass $KEYSTORE_PASSWORD | more
 }
 
-validate()
+get-alias()
+{
+  local fullfile=$1
+	local filename="${fullfile##*/}"
+	local alias=$(echo $filename | cut -f 1 -d '.') #File name without the extension
+
+  echo "$alias"
+}
+
+validate-certificate()
+{
+	local cert=$1
+
+	if [ -z "$cert" ]; then
+		echo "Required: certificate file name"
+		exit 1
+	fi
+
+	if [[ $cert == *.p12 || $cert == *.P12 ]]; then
+		echo "ERROR: This script does not support p12 certificates. Please refer to the official docs."
+		echo " "
+		echo "https://docs.appdynamics.com/display/latest/Controller+SSL+and+Certificates"
+		exit 1
+	fi
+
+	if [ ! -f $cert ]; then
+	    echo "ERROR: File not found, $1"
+			exit 1
+	fi
+}
+
+validate-install()
 {
 	if [ ! -d "$CONTROLLER_HOME" ]; then
 		echo "ERROR: Unable to find $CONTROLLER_HOME. Set the variable in this script."
@@ -157,18 +174,23 @@ validate()
 	fi
 }
 
-main()
+disclaimer-controller()
 {
 	echo " "
 	echo "This script helps working with SSL certificates, but it's not a total replacement for keytool."
 	echo "Think of this as the Basic interface to keystores and keytool is the Advanced one."
 	echo "Read the full Controller+SSL docs at "
+	echo " "
 	echo "https://docs.appdynamics.com/display/latest/Controller+SSL+and+Certificates "
 	echo " "
-	echo "ATTENTION: This is an *unofficial* script so consider it to be Alpha--not GA."
+	echo "ATTENTION: This is an *unofficial* script; it is not GA. Read the docs above."
 	echo " "
+	read -p "Press [Enter] to continue..."
 	echo " "
+}
 
+main-controller()
+{
 	while true; do
 		echo "[1] Generate a certificate signing request"
 		echo "[2] Import a root or intermediate certificate"
@@ -206,5 +228,6 @@ main()
 	done
 }
 
-validate
-main
+disclaimer-controller
+validate-install
+main-controller
