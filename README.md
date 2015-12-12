@@ -16,6 +16,11 @@ They're not a total replacement for keytool. Think of them as the **Basic** inte
 1. Import a root or intermediate cert
 1. List the contents of keystore
 
+## Download
+Download the latest release from the Releases page:
+
+https://github.com/derrekyoung/AppD-SSL-Cert-Utils/releases/latest
+
 ## Usage
 Run either `./controller-ssl-certs-util.sh` or `./eum-ssl-certs-util.sh` and then use the interactive command line. 
 
