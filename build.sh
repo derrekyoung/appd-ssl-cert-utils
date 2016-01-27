@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="0.8-BETA"
+VERSION="1.0-BETA"
 
 
 ################################################
@@ -26,6 +26,8 @@ dist()
 
   cp controller-ssl-certs-util.sh $DIST_DIR/$DIST_TOP_FOLDER/controller-ssl-certs-util-$VERSION.sh
   cp eum-ssl-certs-util.sh $DIST_DIR/$DIST_TOP_FOLDER/eum-ssl-certs-util-$VERSION.sh
+  cp ssl-certs-util-common.sh $DIST_DIR/$DIST_TOP_FOLDER/ssl-certs-util-common.sh
+  cp README.md $DIST_DIR/$DIST_TOP_FOLDER/README.md
 
   echo "Creating the Zip file..."
 

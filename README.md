@@ -1,10 +1,7 @@
 # AppD-SSL-Cert-Utils
 
-ATTENTION: 
-* These are **unofficial** utilities so consider them to be Beta--not GA
-* Your mileage may vary
-* Thar be dragons
-* Etcetera, etcetera
+ATTENTION:
+* These are **unofficial** utilities so consider them to be Beta--not GA. If unsure, bring in your AppDynamics representative.
 
 ## Description
 Totally unofficial SSL utils to ease working with SSL certificates in AppD.
@@ -22,6 +19,13 @@ Download the latest release from the Releases page:
 https://github.com/derrekyoung/AppD-SSL-Cert-Utils/releases/latest
 
 ## Usage
-Run either `./controller-ssl-certs-util.sh` or `./eum-ssl-certs-util.sh` and then use the interactive command line. 
+Always follow the official AppDynamics documentation at https://docs.appdynamics.com
 
-No parameters are passed in. Always follow the official AppDynamics documentation. In general, you'll need to create a CSR and then import the cert. If you have an internal CA, you'll need to import the root and/or intermediate certs.
+The basic flow is to
+- Create a Certificate Signing Request (CSR)
+- Send that CSR to your CA
+- They'll send back to you a signed certificate
+- You'll then need to import your signed certificate
+- IF you have an internal CA, then you'll first need to import your root cert, cert chain and/or intermediate cert. The exact steps depend on your organization and environment.
+
+Run either `./controller-ssl-certs-util.sh` or `./eum-ssl-certs-util.sh` and then use the interactive command line. No parameters are passed in.
