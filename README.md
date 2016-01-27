@@ -1,7 +1,10 @@
 # AppD-SSL-Cert-Utils
 
 ATTENTION:
-* These are **unofficial** utilities so consider them to be Beta--not GA. If unsure, bring in your AppDynamics representative.
+* These are **unofficial** utilities so consider them to be Beta--not GA. 
+* Contact your AppDynamics account representative if you're unsure how to proceed with custom SSL certs.
+* This is an author supported utility so don't open an official Support ticket. Please report any bugs via GitHub's integrated issue tracker.
+
 
 ## Description
 Totally unofficial SSL utils to ease working with SSL certificates in AppD.
@@ -21,6 +24,8 @@ https://github.com/derrekyoung/AppD-SSL-Cert-Utils/releases/latest
 ## Usage
 Always follow the official AppDynamics documentation at https://docs.appdynamics.com
 
+There is a script that's specific to the Controller and one to the EUM Server. Choose the right one. Please report any bugs via GitHub's integrated issue tracker.
+
 The basic flow is to
 - Create a Certificate Signing Request (CSR)
 - Send that CSR to your CA
@@ -28,4 +33,12 @@ The basic flow is to
 - You'll then need to import your signed certificate
 - IF you have an internal CA, then you'll first need to import your root cert, cert chain and/or intermediate cert. The exact steps depend on your organization and environment.
 
-Run either `./controller-ssl-certs-util.sh` or `./eum-ssl-certs-util.sh` and then use the interactive command line. No parameters are passed in.
+### Controller usage
+1. Verify the appropriate permissions on the script
+1. Set the Controller home directory at the top of `controller-ssl-certs-util.sh`.
+1. Run `./controller-ssl-certs-util.sh` and follow the interactive shell.
+
+### EUM Server usage
+1. Verify the appropriate permissions on the script
+1. Set the EUM Server home directory at the top of `eum-ssl-certs-util.sh`.
+1. Run  `./eum-ssl-certs-util.sh` and follow the interactive shell.
