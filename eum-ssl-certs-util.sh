@@ -28,7 +28,7 @@ fi
 DATETIME=$(date +%Y%m%d%H%M)
 CSR="./$HOSTNAME-$DATETIME.csr"
 
-SIGNED_CERT_ALIAS_NAME="eum-server"
+SIGNED_CERT_ALIAS_NAME="eum-processor"
 KEYSTORE_NAME="keystore.jks"
 KEYSTORE_PASSWORD="changeit"
 CONFIG_HOME=$EUM_HOME/eum-processor/bin
