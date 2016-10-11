@@ -1,4 +1,4 @@
-# AppD-SSL-Cert-Utils
+# AppDynamics SSL Cert Utils
 
 ATTENTION:
 * These are **unofficial** utilities so consider them to be Beta--not GA. 
