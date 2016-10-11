@@ -19,7 +19,7 @@ They're not a total replacement for keytool. Think of them as the **Basic** inte
 ## Download
 Download the latest release from the Releases page:
 
-https://github.com/derrekyoung/AppD-SSL-Cert-Utils/releases/latest
+https://github.com/derrekyoung/appd-ssl-cert-utils/releases/latest
 
 ## Usage
 Always follow the official AppDynamics documentation at https://docs.appdynamics.com
